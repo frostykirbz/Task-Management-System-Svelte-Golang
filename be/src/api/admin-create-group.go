@@ -15,6 +15,7 @@ import (
 )
 
 type Groupnames struct {
+	// json tag to de-serialize json body
 	Name string `json:"user_group"`
 }
 
@@ -33,34 +34,41 @@ type Groupnames struct {
 // 	fmt.Println("Inserted Successfully")
 // }
 
-func createGroup(c *gin.Context) {
+func createGroup(context *gin.Context) {
 	var newGroup Groupnames
 
 	// call BindJSON to bind the received JSON to newGroup
-	if err := c.BindJSON(&newGroup); err != nil {
+	if err := context.BindJSON(&newGroup); err != nil {
 		fmt.Println(err)
-		middleware.ErrorHandler(c, http.StatusBadRequest, "Bad Request")
+		middleware.ErrorHandler(context, http.StatusBadRequest, "Bad Request")
 		return
 	}
 
 	// MySQL database connection
-	db, err := sql.Open("mysql", "root:paassword@/c3_database")
+	db, err := sql.Open("mysql", "root:password@/c3_database")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	// insert newGroup
-	// _, err := db.Exec("INSERT INTO groupnames (user_group) VALUES (?)", newGroup.Name)
+	// var groupname string
 
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	middleware.ErrorHandler(c, http.StatusBadRequest, "Unabled to create new group")
-	// 	return
-	// }
+	// checkGroupname := "SELECT user_group FROM groupnames WHERE user_group = ?"
 
-	// fmt.Println("Inserted Successfully")
-	c.IndentedJSON(http.StatusCreated, gin.H{"code": 200, "message": "New group has created successfully"})
+	// Scan: scanning and reading input (texts given in standard input)
+	// result := db.QueryRow(checkGroupname, newGroup.Name).Scan(&groupname)
+
+	// insert new group
+	_, err = db.Exec("INSERT INTO Groupnames (user_group) VALUES (?)", newGroup.Name)
+
+	if err != nil {
+		fmt.Println(err)
+		middleware.ErrorHandler(context, http.StatusBadRequest, "Unabled to create new group")
+		return
+	}
+
+	fmt.Println(newGroup)
+	context.IndentedJSON(http.StatusCreated, gin.H{"code": 200, "message": "New group has created successfully"})
 }
 
 func main() {
@@ -87,6 +95,11 @@ func main() {
 
 	router := gin.Default()
 	router.POST("/admin-create-group", createGroup)
-
+	router.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"code":    200,
+			"message": "TEST",
+		})
+	})
 	router.Run("localhost:4000")
 }
