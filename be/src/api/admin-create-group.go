@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -14,28 +13,16 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+ var db *sql.DB
+
 type Groupnames struct {
 	// json tag to de-serialize json body
 	Name string `json:"user_group"`
 }
 
-// createGroup adds the specified group to database
-// func (grp Groupnames) createGroup(res http.ResponseWriter, req *http.Request) {
-// 	// var newGroup Groupnames
-
-// 	// // check if groupname exist before creating
-// 	// checkGroupname := "SELECT user_group FROM groupnames WHERE user_group = ?"
-
-// 	// // get result
-// 	// result := db.QueryRow(checkGroupname, newGroup.Name)
-
-// 	_, err := db.Exec("INSERT INTO groupnames (user_group) VALUES (?)", grp.Name)
-// 	check(err)
-// 	fmt.Println("Inserted Successfully")
-// }
-
 func createGroup(context *gin.Context) {
 	var newGroup Groupnames
+	var groupname string
 
 	// call BindJSON to bind the received JSON to newGroup
 	if err := context.BindJSON(&newGroup); err != nil {
@@ -44,50 +31,58 @@ func createGroup(context *gin.Context) {
 		return
 	}
 
-	// MySQL database connection
-	db, err := sql.Open("mysql", "root:password@/c3_database")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
-	// var groupname string
-
-	// checkGroupname := "SELECT user_group FROM groupnames WHERE user_group = ?"
-
-	// Scan: scanning and reading input (texts given in standard input)
-	// result := db.QueryRow(checkGroupname, newGroup.Name).Scan(&groupname)
-
-	// insert new group
-	_, err = db.Exec("INSERT INTO Groupnames (user_group) VALUES (?)", newGroup.Name)
-
-	if err != nil {
-		fmt.Println(err)
-		middleware.ErrorHandler(context, http.StatusBadRequest, "Unabled to create new group")
+	// check if groupname field has whitespace
+	whiteSpace := middleware.CheckWhiteSpace(newGroup.Name)
+	if whiteSpace == true {
+		middleware.ErrorHandler(context, 400, "Groupname should not contain whitespace")
 		return
 	}
 
-	fmt.Println(newGroup)
-	context.IndentedJSON(http.StatusCreated, gin.H{"code": 200, "message": "New group has created successfully"})
+	// check if groupname field is empty
+	minLength := middleware.CheckLength(newGroup.Name)
+	if minLength == true {
+		middleware.ErrorHandler(context, 400, "Groupname should not be empty")
+		return
+	}
+
+	// check for existing groupname before creating
+	checkGroupname := "SELECT user_group FROM groupnames WHERE user_group = ?"
+
+	// return first result (single row result)
+	result := db.QueryRow(checkGroupname, newGroup.Name)
+
+	// Scan: scanning and reading input (texts given in standard input)
+	switch err := result.Scan(&groupname); err {
+		
+	// New Group
+	case sql.ErrNoRows:
+		// insert new group
+		_, err := db.Exec("INSERT INTO Groupnames (user_group) VALUES (?)", newGroup.Name)
+
+		if err != nil {
+			fmt.Println(err)
+			middleware.ErrorHandler(context, http.StatusBadRequest, "Unable to create new group")
+			return
+		}
+
+		fmt.Println(newGroup)
+		context.IndentedJSON(http.StatusCreated, gin.H{"code": 200, "message": "New group has created successfully"})
+
+	// Existing groupname
+	case nil: 
+		middleware.ErrorHandler(context, http.StatusBadRequest, "Existing Groupname")
+	
+	// Invalid Field
+	default:
+		middleware.ErrorHandler(context, http.StatusBadRequest, "Invalid Field")
+	}
 }
 
 func main() {
-	// Get a database handle
-	// var err error
-	// db, err = sql.Open("mysql", "root:password@/c3_database")
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
-	// defer db.Close()
+	connectionToMySQL()
+	defer db.Close()
 
-	// pingErr := db.Ping()
-	// if pingErr != nil {
-	// 	fmt.Println(pingErr)
-	// 	return
-	// }
-
-	// fmt.Println("Database connected!")
+	fmt.Println("Database connected!")
 
 	// http.HandleFunc("/admin-create-group", createGroup)
 
@@ -102,4 +97,20 @@ func main() {
 		})
 	})
 	router.Run("localhost:4000")
+}
+
+func connectionToMySQL(){
+	// Get a database handle.
+	var err error
+	db, err = sql.Open("mysql", "root:password@/c3_database")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	pingErr := db.Ping()
+	if pingErr != nil {
+		fmt.Println(pingErr)
+		return
+	}
 }
