@@ -10,6 +10,7 @@ import (
 	// middleware package
 	"api/middleware"
 
+	"github.com/gin-contrib/cors"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -22,7 +23,6 @@ type Groupnames struct {
 
 func createGroup(context *gin.Context) {
 	var newGroup Groupnames
-	var groupname string
 
 	// call BindJSON to bind the received JSON to newGroup
 	if err := context.BindJSON(&newGroup); err != nil {
@@ -34,15 +34,15 @@ func createGroup(context *gin.Context) {
 	// check if groupname field has whitespace
 	whiteSpace := middleware.CheckWhiteSpace(newGroup.Name)
 	if whiteSpace == true {
-		middleware.ErrorHandler(context, 400, "Groupname should not contain whitespace")
+		middleware.ErrorHandler(context, http.StatusBadRequest, "Groupname should not contain whitespace")
 		return
 	}
 
 	// check if groupname field is empty
 	minLength := middleware.CheckLength(newGroup.Name)
 	if minLength == true {
-		middleware.ErrorHandler(context, 400, "Groupname should not be empty")
-		return
+		middleware.ErrorHandler(context, http.StatusBadRequest, "Groupname should not be empty")
+		return 
 	}
 
 	// check for existing groupname before creating
@@ -52,7 +52,7 @@ func createGroup(context *gin.Context) {
 	result := db.QueryRow(checkGroupname, newGroup.Name)
 
 	// Scan: scanning and reading input (texts given in standard input)
-	switch err := result.Scan(&groupname); err {
+	switch err := result.Scan(&newGroup.Name); err {
 		
 	// New Group
 	case sql.ErrNoRows:
@@ -61,20 +61,22 @@ func createGroup(context *gin.Context) {
 
 		if err != nil {
 			fmt.Println(err)
-			middleware.ErrorHandler(context, http.StatusBadRequest, "Unable to create new group")
+			middleware.ErrorHandler(context, http.StatusNotFound, "Unable to create new group")
 			return
 		}
 
-		fmt.Println(newGroup)
-		context.IndentedJSON(http.StatusCreated, gin.H{"code": 200, "message": "New group has created successfully"})
+		context.JSON(http.StatusCreated, gin.H{"code": http.StatusCreated, "message": "New group has created successfully"})
+		return
 
 	// Existing groupname
 	case nil: 
 		middleware.ErrorHandler(context, http.StatusBadRequest, "Existing Groupname")
+		return
 	
 	// Invalid Field
 	default:
 		middleware.ErrorHandler(context, http.StatusBadRequest, "Invalid Field")
+		return
 	}
 }
 
@@ -89,6 +91,9 @@ func main() {
 	// log.Fatal(http.ListenAndServe(":4000", nil))
 
 	router := gin.Default()
+	router.Use(cors.Default())
+	// router.Use(cors.New(CORSConfig()))
+
 	router.POST("/admin-create-group", createGroup)
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -96,6 +101,7 @@ func main() {
 			"message": "TEST",
 		})
 	})
+
 	router.Run("localhost:4000")
 }
 
@@ -113,4 +119,13 @@ func connectionToMySQL(){
 		fmt.Println(pingErr)
 		return
 	}
+}
+
+func CORSConfig() cors.Config{
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowOrigins = []string{"http://localhost:3000"}
+	corsConfig.AllowCredentials = true
+	corsConfig.AddAllowHeaders("Access-Control-Allow-Headers", "access-control-allow-origin, access-control-allow-headers", "Content-Type", "X-XSRF-TOKEN", "Accept", "Origin", "X-Requested-With", "Authorization")
+	corsConfig.AddAllowMethods("GET", "POST", "PUT", "DELETE")
+	return corsConfig
 }
