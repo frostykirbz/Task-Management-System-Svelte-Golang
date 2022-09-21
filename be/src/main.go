@@ -1,17 +1,25 @@
 package main
 
-import "fmt"
+import (
+	"backend/api/middleware"
+	"backend/api/route"
+	"fmt"
+
+	"github.com/gin-gonic/gin"
+	"github.com/gin-contrib/cors"
+)
 
 func main() {
-	fmt.Println("Hello Team 6!")
-	jieWeiSaysHi()
-	amosSaysHi()
-}
+	db := middleware.ConnectionToDatabase()
+	defer db.Close()
 
-func jieWeiSaysHi() {
-	fmt.Println("Jie Wei was here!")
-}
+	router := gin.Default()
+	router.Use(cors.Default())
 
-func amosSaysHi() {
-	fmt.Println("I am adlv boy")
+	router.POST("/admin-create-group", route.CreateGroup)
+
+	port := middleware.LoadENV("SERVER_PORT")
+	server := fmt.Sprintf(":%v", port)
+
+	router.Run(server)
 }

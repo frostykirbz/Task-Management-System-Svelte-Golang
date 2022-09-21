@@ -1,6 +1,7 @@
 <script>
   import axios from 'axios'
-  import {onMount} from "svelte"
+  import { toast, SvelteToast } from '@zerodevx/svelte-toast'
+  import Navbar from './Navbar.svelte'
 
 	let groupname = ""
   let message = ""
@@ -8,16 +9,17 @@
   async function CreateGroup(){
     const json = {user_group: groupname}
     console.log(json)
-    // try{
+    try{
       const response = await axios.post("http://localhost:4000/admin-create-group", json)
       console.log(response.data)
-    //   if (response)
-    //   {
-    //     message = response.data.message
-    //   }
-    // } catch (e){
-    //   message = e
-    // }
+      if (response.data)
+      {
+        message = response.data.message
+        toast.push(message)
+      }
+    } catch (e){
+      console.log(e)
+    }
   }
 
 </script>
@@ -28,7 +30,9 @@
 	}
 </style>
 
+<SvelteToast />
+<Navbar/>
+<br/>
 <input type="text" bind:value={groupname}>
-<p>{message}</p>
 
 <button on:click={CreateGroup}>Calculate</button>
