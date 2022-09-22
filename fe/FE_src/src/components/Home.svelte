@@ -1,7 +1,7 @@
 <script>
   import axios from 'axios'
   import { toast, SvelteToast } from '@zerodevx/svelte-toast'
-  import Navbar from './Navbar.svelte'
+  import Navbar from "./Login.svelte"
 
 </script>
 
@@ -11,5 +11,4 @@
 
 <SvelteToast />
 <Navbar/>
-<br/>
 <h1>Welcome to TMS</h1>

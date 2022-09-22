@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import {
     Collapse,
     Navbar,
@@ -6,15 +6,8 @@
     NavbarBrand,
     Nav,
     NavItem,
-    NavLink,
-    Dropdown,
-    DropdownToggle,
-    DropdownMenu,
-    DropdownItem
-  } from 'sveltestrap';
-
-  import Home from "./Home.svelte";
-	import MgtUser from "./MgtUser.svelte";
+    NavLink
+  } from "sveltestrap"
 
   let isOpen = false;
 
@@ -34,15 +27,6 @@
       <NavItem>
         <NavLink href="./group">Group Management</NavLink>
       </NavItem>
-      <Dropdown nav inNavbar>
-        <DropdownToggle nav caret>Options</DropdownToggle>
-        <DropdownMenu end>
-          <DropdownItem>Option 1</DropdownItem>
-          <DropdownItem>Option 2</DropdownItem>
-          <DropdownItem divider />
-          <DropdownItem>Reset</DropdownItem>
-        </DropdownMenu>
-      </Dropdown>
     </Nav>
   </Collapse>
 </Navbar>

@@ -5,8 +5,8 @@ import (
 	"backend/api/route"
 	"fmt"
 
-	"github.com/gin-gonic/gin"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -16,7 +16,7 @@ func main() {
 	router := gin.Default()
 	router.Use(cors.Default())
 
-	router.POST("/admin-create-group", route.CreateGroup)
+	router.POST("/admin-create-group", route.AdminCreateGroup)
 
 	port := middleware.LoadENV("SERVER_PORT")
 	server := fmt.Sprintf(":%v", port)

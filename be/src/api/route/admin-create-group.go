@@ -20,7 +20,7 @@ type Groupnames struct {
 	Name string `json:"user_group"`
 }
 
-func CreateGroup(context *gin.Context) {
+func AdminCreateGroup(context *gin.Context) {
 	var newGroup Groupnames
 
 	// call BindJSON to bind the received JSON to newGroup

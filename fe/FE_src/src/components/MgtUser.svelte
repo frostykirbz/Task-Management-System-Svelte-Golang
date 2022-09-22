@@ -10,6 +10,4 @@
 </style>
 
 <SvelteToast />
-<Navbar/>
-<br/>
-<h1>Welcome to TMS</h1>
+<h1>User Management</h1>
