@@ -8,6 +8,6 @@ type Response struct {
 }
 
 func ErrorHandler(c *gin.Context, code int, message interface{}) {
-	c.JSON(code, gin.H{"code": code, "message": message})
 	c.Next()
+	c.JSON(code, gin.H{"code": code, "message": message})
 }

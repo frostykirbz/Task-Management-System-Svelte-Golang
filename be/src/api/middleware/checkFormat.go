@@ -8,7 +8,7 @@ func CheckWhiteSpace(value string) bool {
 	var (
 		hasWhiteSpace = false
 	)
-
+	// s := strings.TrimSpace(value)
 	for _, char := range value {
 		switch {
 		case unicode.IsSpace(char) :

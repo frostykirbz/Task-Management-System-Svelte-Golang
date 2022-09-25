@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -12,8 +13,6 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 )
-
-var db *sql.DB = middleware.ConnectionToDatabase()
 
 type Groupnames struct {
 	// json tag to de-serialize json body
@@ -30,33 +29,29 @@ func AdminCreateGroup(context *gin.Context) {
 		return
 	}
 
-	// check if groupname field has whitespace
-	whiteSpace := middleware.CheckWhiteSpace(newGroup.Name)
-	if whiteSpace == true {
-		middleware.ErrorHandler(context, 200, "Groupname should not contain whitespace")
-		return
-	}
+	// remove spaces in groupname
+	groupname := strings.TrimSpace(newGroup.Name)
 
 	// check if groupname field is empty
-	minLength := middleware.CheckLength(newGroup.Name)
-	if minLength == true {
+	minLength := middleware.CheckLength(groupname)
+	if minLength {
 		middleware.ErrorHandler(context, 200, "Groupname should not be empty")
-		return 
+		return
 	}
 
 	// check for existing groupname before creating
 	checkGroupname := "SELECT user_group FROM groupnames WHERE user_group = ?"
 
 	// return first result (single row result)
-	result := db.QueryRow(checkGroupname, newGroup.Name)
+	result := db.QueryRow(checkGroupname, groupname)
 
 	// Scan: scanning and reading input (texts given in standard input)
-	switch err := result.Scan(&newGroup.Name); err {
-		
+	switch err := result.Scan(&groupname); err {
+
 	// New Group
 	case sql.ErrNoRows:
 		// insert new group
-		_, err := db.Exec("INSERT INTO Groupnames (user_group) VALUES (?)", newGroup.Name)
+		_, err := db.Exec("INSERT INTO Groupnames (user_group) VALUES (?)", groupname)
 
 		if err != nil {
 			fmt.Println(err)
@@ -68,10 +63,10 @@ func AdminCreateGroup(context *gin.Context) {
 		return
 
 	// Existing groupname
-	case nil: 
+	case nil:
 		middleware.ErrorHandler(context, 200, "Existing Groupname")
 		return
-	
+
 	// Invalid Field
 	default:
 		middleware.ErrorHandler(context, 200, "Invalid Field")
