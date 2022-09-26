@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -25,17 +24,21 @@ func AdminCreateGroup(context *gin.Context) {
 	// call BindJSON to bind the received JSON to newGroup
 	if err := context.BindJSON(&newGroup); err != nil {
 		fmt.Println(err)
-		middleware.ErrorHandler(context, 200, "Bad Request")
+		middleware.ErrorHandler(context, 400, "Bad Request")
 		return
 	}
 
-	// remove spaces in groupname
-	groupname := strings.TrimSpace(newGroup.Name)
+	// check if groupname field has whitespace
+	whiteSpace := middleware.CheckWhiteSpace(newGroup.Name)
+	if whiteSpace {
+		middleware.ErrorHandler(context, 400, "Groupname should not contain whitespace")
+		return
+	}
 
 	// check if groupname field is empty
-	minLength := middleware.CheckLength(groupname)
+	minLength := middleware.CheckLength(newGroup.Name)
 	if minLength {
-		middleware.ErrorHandler(context, 200, "Groupname should not be empty")
+		middleware.ErrorHandler(context, 400, "Groupname should not be empty")
 		return
 	}
 
@@ -43,19 +46,19 @@ func AdminCreateGroup(context *gin.Context) {
 	checkGroupname := "SELECT user_group FROM groupnames WHERE user_group = ?"
 
 	// return first result (single row result)
-	result := db.QueryRow(checkGroupname, groupname)
+	result := db.QueryRow(checkGroupname, newGroup.Name)
 
 	// Scan: scanning and reading input (texts given in standard input)
-	switch err := result.Scan(&groupname); err {
+	switch err := result.Scan(&newGroup.Name); err {
 
 	// New Group
 	case sql.ErrNoRows:
 		// insert new group
-		_, err := db.Exec("INSERT INTO Groupnames (user_group) VALUES (?)", groupname)
+		_, err := db.Exec("INSERT INTO Groupnames (user_group) VALUES (?)", newGroup.Name)
 
 		if err != nil {
 			fmt.Println(err)
-			middleware.ErrorHandler(context, 200, "Unable to create new group")
+			middleware.ErrorHandler(context, 400, "Unable to create new group")
 			return
 		}
 
@@ -64,12 +67,12 @@ func AdminCreateGroup(context *gin.Context) {
 
 	// Existing groupname
 	case nil:
-		middleware.ErrorHandler(context, 200, "Existing Groupname")
+		middleware.ErrorHandler(context, 400, "Existing Groupname")
 		return
 
 	// Invalid Field
 	default:
-		middleware.ErrorHandler(context, 200, "Invalid Field")
+		middleware.ErrorHandler(context, 400, "Invalid Field")
 		return
 	}
 }

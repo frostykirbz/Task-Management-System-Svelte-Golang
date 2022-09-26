@@ -20,23 +20,21 @@
     e.preventDefault();
 
     const loggedInUser = localStorage.getItem("username");
-    const json = { loggedInUser, username, email, password, user_group: selected, status };
+    const json = {
+      loggedInUser,
+      username,
+      email,
+      password,
+      user_group: selected,
+      status,
+    };
     try {
       const response = await axios.post("http://localhost:4000/admin-create-user", json, { withCredentials: true });
       loading = true;
 
       setTimeout(() => {
-        if (response.data.error) {
-          errorToast(response.data.error);
-          loading = false;
-
-          username = "";
-          password = "";
-          email = "";
-          selected = [];
-          status = "Active";
-        } else if (!response.data.error) {
-          successToast("New user created");
+        if (!response.data.error) {
+          successToast(response.data.message);
           loading = false;
 
           username = "";
@@ -46,8 +44,8 @@
           status = "Active";
         }
       }, 500);
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      errorToast(error.response.data.message);
     }
   }
 
@@ -111,7 +109,7 @@
           <Col>
             <FormGroup>
               <Label>Password:</Label>
-              <Input placeholder="password" bind:value={password} />
+              <Input type="password" placeholder="password" bind:value={password} />
             </FormGroup>
           </Col>
         </Row>

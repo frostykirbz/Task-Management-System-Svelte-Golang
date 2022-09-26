@@ -1,18 +1,25 @@
 package middleware
 
-import "net/mail"
+import (
+	"net/mail"
+	"fmt"
+)
 
 // email validation
 func CheckEmail(email string) bool {
 
-	// Optional email
-	if len(email) == 0 {
-		return true
-	}
+	var (
+		validEmail = false
+	)
 
+	// Parse email format before query
 	_, err := mail.ParseAddress(email)
 	if err != nil {
-		return false
+		fmt.Println(err)
+		validEmail = false
+	} else {
+		validEmail = true
 	}
-	return true
+	
+	return validEmail
 }

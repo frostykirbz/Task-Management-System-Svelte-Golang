@@ -16,22 +16,23 @@
   let selected = [];
   selected.push(...user_group);
 
-  async function handleSubmit(e) {
+  const loggedInUser = localStorage.getItem("username");
+
+  export async function handleClick(e) {
     e.preventDefault();
     let user_group = selected.join(",");
-    const json = { username, password, email, user_group, status };
+    const json = {loggedInUser, username, password, email, user_group, status };
 
     try {
       const response = await axios.post("http://localhost:4000/admin-update-user", json, { withCredentials: true });
       if (response) {
-        console.log("POST BACK");
         message = response.data.message;
         code = response.data.code;
         successToast(message);
         password = "";
       }
     } catch (error) {
-      errorToast("Unauthorized.");
+      errorToast(error.response.data.message);
     }
   }
 
@@ -57,7 +58,7 @@
   $: GetUserGroups();
 </script>
 
-<Form on:submit={handleSubmit}>
+<Form>
   <Row>
     <Col>
       <FormGroup>
@@ -81,24 +82,24 @@
         <Input type="email" bind:value={email} placeholder="Email" />
       </FormGroup>
     </Col>
-
-    <Col />
+    
+    <Col>
+      <FormGroup>
+        <Label for="status">Status</Label>
+        <Input type="select" bind:value={status} placeholder="Status">
+          <option>Inactive</option>
+          <option>Active</option>
+        </Input>
+      </FormGroup>
+    </Col>
   </Row>
 
   <FormGroup>
     <Label for="usergroup">User Group(s):</Label>
     <MultiSelect bind:selected options={groupsArray} />
   </FormGroup>
-
-  <FormGroup>
-    <Label for="status">Status</Label>
-    <Input type="select" bind:value={status} placeholder="Status">
-      <option>Inactive</option>
-      <option>Active</option>
-    </Input>
-  </FormGroup>
-
-  <Button color="primary">Update User</Button>
+  
+  <!-- <Button color="primary" on:click={handleClick}>Update User</Button> -->
 </Form>
 
 <style>

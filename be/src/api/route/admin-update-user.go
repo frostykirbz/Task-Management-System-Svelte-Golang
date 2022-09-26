@@ -16,11 +16,12 @@ import (
 
 // Go struct in the form of JSON
 type UserData struct {
-	Username   string `json:"username"`
-	Password   string `json:"password"`
-	Email      string `json:"email"`
-	User_group string `json:"user_group"`
-	Status     string `json:"status"`
+	LoggedInUser string `json:"loggedInUser"`
+	Username     string `json:"username"`
+	Password     string `json:"password"`
+	Email        string `json:"email"`
+	User_group   string `json:"user_group"`
+	Status       string `json:"status"`
 }
 
 type SpecificUser struct {
@@ -37,28 +38,34 @@ func AdminUpdateUser(c *gin.Context) {
 		return
 	}
 
+	checkGroup := middleware.CheckGroup(updateUser.LoggedInUser, "Admin")
+	if !checkGroup {
+		middleware.ErrorHandler(c, 400, "Unauthorized actions")
+		return
+	}
+
 	adminUpdateUser(updateUser.Username, updateUser.Password, updateUser.Email, updateUser.User_group, updateUser.Status, c)
 }
 
 func adminUpdateUser(username string, password string, email string, user_group string, status string, c *gin.Context) {
 	if username != "" {
-		whiteSpace := middleware.CheckWhiteSpace(username)
-		if whiteSpace {
-			middleware.ErrorHandler(c, 400, "Username should not contain whitespace")
-			return
-		}
+		// whiteSpace := middleware.CheckWhiteSpace(username)
+		// if whiteSpace {
+		// 	middleware.ErrorHandler(c, 400, "Username should not contain whitespace")
+		// 	return
+		// }
 
 		result := middleware.SelectAccountsByUsername(username, c)
 		switch err := result.Scan(&username); {
 		case err != sql.ErrNoRows:
 			adminUpdateUserPassword(username, password, email, user_group, status, c)
 		case err == sql.ErrNoRows:
-			middleware.ErrorHandler(c, 200, "Username does not exist. Please try again.")
+			middleware.ErrorHandler(c, 400, "Username does not exist. Please try again.")
 		default:
 			checkError(err)
 		}
 	} else {
-		middleware.ErrorHandler(c, 200, "Please enter a username")
+		middleware.ErrorHandler(c, 400, "Please enter a username")
 	}
 }
 
@@ -69,7 +76,7 @@ func adminUpdateUserPassword(username string, password string, email string, use
 			hashedPassword, _ := middleware.GenerateHash(password)
 			adminUpdateUserEmail(username, hashedPassword, email, user_group, status, c)
 		} else {
-			middleware.ErrorHandler(c, 200, "Password length must be between length 8 - 10 with alphabets, numbers and special characters.")
+			middleware.ErrorHandler(c, 400, "Password length must be between length 8 - 10 with alphabets, numbers and special characters.")
 		}
 	} else {
 		password = getCurrentUserData(username, c)["password"]
@@ -79,29 +86,9 @@ func adminUpdateUserPassword(username string, password string, email string, use
 }
 
 func adminUpdateUserEmail(username string, hashedPassword string, email string, user_group string, status string, c *gin.Context) {
-	validEmail := middleware.CheckEmail(email)
-
-	// Invalid email format
-	if !validEmail {
-		middleware.ErrorHandler(c, 400, "Invalid email format")
-		return
-	}
 
 	if email != "" {
-		currentEmail := getCurrentUserData(username, c)["email"]
-		if email == currentEmail {
-			adminUpdateUserGroup(username, hashedPassword, currentEmail, user_group, status, c)
-		} else {
-			result := middleware.SelectAccountsByEmail(email, c)
-			switch err := result.Scan(&email); {
-			case err != sql.ErrNoRows:
-				middleware.ErrorHandler(c, 200, "Email already exists in database. Please try again.")
-			case err == sql.ErrNoRows:
-				adminUpdateUserGroup(username, hashedPassword, email, user_group, status, c)
-			default:
-				checkError(err)
-			}
-		}
+		adminUpdateUserGroup(username, hashedPassword, email, user_group, status, c)
 	} else {
 		email = getCurrentUserData(username, c)["email"]
 		adminUpdateUserGroup(username, hashedPassword, email, user_group, status, c)
@@ -135,7 +122,7 @@ func adminUpdateAccountsTable(username string, hashedPassword string, email stri
 	_, err := middleware.UpdateAccountsAdmin(hashedPassword, email, admin_privilege, user_group, status, username, c)
 	checkError(err)
 	successMessage := fmt.Sprintf("User %s was successfully updated!", username)
-	c.JSON(http.StatusCreated, gin.H{"code": 201, "message": successMessage})
+	c.JSON(http.StatusCreated, gin.H{"code": 200, "message": successMessage})
 }
 
 func getCurrentUserData(username string, c *gin.Context) map[string]string {

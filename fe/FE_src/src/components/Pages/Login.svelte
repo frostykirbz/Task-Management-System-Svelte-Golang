@@ -17,19 +17,16 @@
       });
       if (response) {
         navigate("http://localhost:3000/home");
-        const token = response.data.token;
-        localStorage.setItem("token", token);
         localStorage.setItem("username", json.username);
       }
     } catch (e) {
-      errorToast("Invalid login");
-      e.response && e.response.data.message ? console.log(e.response.data.message) : console.log(e.message);
+      e.response && e.response.data.message ? errorToast(e.response.data.message) : errorToast(e.message);
     }
   }
 </script>
 
 <div class="container-fluid">
-  <div class="row no gutter">
+  <div class="row no-gutter">
     <!-- The image half -->
     <div class="col-md-6 d-none d-md-flex bg-image" />
 
@@ -45,13 +42,28 @@
               <Form on:submit={handleSubmit}>
                 <FormGroup>
                   <div class="form-group mb-3">
-                    <Input autofocus id="username" type="text" placeholder="Username" required="" class="form-control rounded-pill border-0 shadow-sm px-4" bind:value={username} />
+                    <Input
+                      autofocus
+                      id="username"
+                      type="text"
+                      placeholder="Username"
+                      required=""
+                      class="form-control rounded-pill border-0 shadow-sm px-4"
+                      bind:value={username}
+                    />
                   </div>
                 </FormGroup>
 
                 <FormGroup>
                   <div class="form-group mb-3">
-                    <Input id="password" type="password" placeholder="Password" required="" class="form-control rounded-pill border-0 shadow-sm px-4 text-primary" bind:value={password} />
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Password"
+                      required=""
+                      class="form-control rounded-pill border-0 shadow-sm px-4 text-primary"
+                      bind:value={password}
+                    />
                   </div>
                 </FormGroup>
                 <Button type="submit" class="btn btn-primary btn-block text-uppercase mb-2 rounded-pill shadow-sm" color="success">Sign in</Button>
