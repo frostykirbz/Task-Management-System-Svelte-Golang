@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -20,6 +21,7 @@ type Groupnames struct {
 
 func AdminCreateGroup(context *gin.Context) {
 	var newGroup Groupnames
+	var groupname string
 
 	// call BindJSON to bind the received JSON to newGroup
 	if err := context.BindJSON(&newGroup); err != nil {
@@ -28,15 +30,11 @@ func AdminCreateGroup(context *gin.Context) {
 		return
 	}
 
-	// check if groupname field has whitespace
-	whiteSpace := middleware.CheckWhiteSpace(newGroup.Name)
-	if whiteSpace {
-		middleware.ErrorHandler(context, 400, "Groupname should not contain whitespace")
-		return
-	}
+	// trim groupname
+	groupname = strings.TrimSpace(newGroup.Name)
 
 	// check if groupname field is empty
-	minLength := middleware.CheckLength(newGroup.Name)
+	minLength := middleware.CheckLength(groupname)
 	if minLength {
 		middleware.ErrorHandler(context, 400, "Groupname should not be empty")
 		return
@@ -46,15 +44,15 @@ func AdminCreateGroup(context *gin.Context) {
 	checkGroupname := "SELECT user_group FROM groupnames WHERE user_group = ?"
 
 	// return first result (single row result)
-	result := db.QueryRow(checkGroupname, newGroup.Name)
+	result := db.QueryRow(checkGroupname, groupname)
 
 	// Scan: scanning and reading input (texts given in standard input)
-	switch err := result.Scan(&newGroup.Name); err {
+	switch err := result.Scan(&groupname); err {
 
 	// New Group
 	case sql.ErrNoRows:
 		// insert new group
-		_, err := db.Exec("INSERT INTO Groupnames (user_group) VALUES (?)", newGroup.Name)
+		_, err := db.Exec("INSERT INTO Groupnames (user_group) VALUES (?)", groupname)
 
 		if err != nil {
 			fmt.Println(err)
