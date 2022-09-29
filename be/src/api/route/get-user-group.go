@@ -1,6 +1,7 @@
 package route
 
 import (
+	"backend/api/middleware"
 	"fmt"
 	"log"
 	"strings"
@@ -8,8 +9,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type usersGroup struct {
+	LoggedInUser string `json:"loggedInUser"`
+	Groupname    string `json:"user_group"`
+	Usercount    int    `json:"user_count"`
+}
+
 func GetUserGroup(c *gin.Context) {
-	result, err := db.Query("SELECT user_group FROM groupnames")
+	checkGroup := middleware.CheckGroup(c.GetString("username"), "Admin")
+	if !checkGroup {
+		middleware.ErrorHandler(c, 400, "Unauthorized actions")
+		return
+	}
+
+	result, err := middleware.SelectUserGroup()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -29,19 +42,21 @@ func GetUserGroup(c *gin.Context) {
 	c.JSON(200, data)
 }
 
-type usersGroup struct {
-	Groupname string `json:"user_group"`
-	Usercount int    `json:"user_count"`
-}
-
 func GetUsersInGroup(c *gin.Context) {
+	checkGroup := middleware.CheckGroup(c.GetString("username"), "Admin")
+	fmt.Println("getstring:", c.GetString("username"))
+	if !checkGroup {
+		middleware.ErrorHandler(c, 400, "Unauthorized actions")
+		return
+	}
+
 	var data []usersGroup
 	var groupname string
 	var count int
 	var usergroup string
 	var groups string
 
-	result, err := db.Query("SELECT user_group FROM accounts GROUP BY username")
+	result, err := middleware.SelectUserGroupFromAccountsGroupByUsername()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -52,13 +67,11 @@ func GetUsersInGroup(c *gin.Context) {
 		if err := result.Scan(&usergroup); err != nil {
 			log.Fatal(err)
 		}
-			
-		groups +=  "," + usergroup;
 
-		fmt.Println(groups)
+		groups += "," + usergroup
 	}
 
-	rows, err := db.Query("SELECT user_group FROM groupnames")
+	rows, err := middleware.SelectUserGroup()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -69,7 +82,6 @@ func GetUsersInGroup(c *gin.Context) {
 		}
 
 		count = strings.Count(groups, groupname)
-		fmt.Println(count)
 
 		response := usersGroup{
 			Groupname: groupname,

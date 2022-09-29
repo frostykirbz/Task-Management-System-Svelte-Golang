@@ -44,7 +44,7 @@ func AdminCreateUser(c *gin.Context) {
 	}
 
 	// Check user group
-	checkGroup := middleware.CheckGroup(newUser.LoggedInUser, "Admin")
+	checkGroup := middleware.CheckGroup(c.GetString("username"), "Admin")
 	if !checkGroup {
 		middleware.ErrorHandler(c, 400, "Unauthorized actions")
 		return
@@ -86,9 +86,7 @@ func AdminCreateUser(c *gin.Context) {
 	}
 
 	// Check if username exist before creating
-	checkUsername := "SELECT username FROM accounts WHERE username = ?"
-
-	result := db.QueryRow(checkUsername, newUser.Username)
+	result := middleware.SelectUsernameFromAccountsByUsername(newUser.Username)
 
 	// Switch between different error case
 	switch err := result.Scan(&newUser.Username); err {
@@ -116,21 +114,21 @@ func AdminCreateUser(c *gin.Context) {
 			middleware.ErrorHandler(c, 400, "Invalid field")
 			return
 		}
-		c.JSON(201, gin.H{"code": 201, "message": "New user created"})
 
 		// LOOP through Usergroup slice and validate
 		for _, group := range newUser.Usergroup {
 			// LOOP to validate group name
 			var user_group string
+			fmt.Println(group)
 
-			result := middleware.SelectGroupnamesbyUserGroup(user_group)
+			result := middleware.SelectGroupnamesbyUserGroup(group)
 
 			switch err := result.Scan(&user_group); err {
 
 			// New group name
 			case sql.ErrNoRows:
 				// INSERT user_group into groupnames table
-				_,err := middleware.InsertGroupnames(group)
+				_, err := middleware.InsertGroupnames(group)
 				if err != nil {
 					middleware.ErrorHandler(c, 400, "Invalid field")
 					return
@@ -144,6 +142,7 @@ func AdminCreateUser(c *gin.Context) {
 				return
 			}
 		}
+		c.JSON(201, gin.H{"code": 201, "message": "New user created"})
 
 	// Username exist
 	case nil:
@@ -157,13 +156,20 @@ func GetUsers(c *gin.Context) {
 	var existingUser ExistingUser
 	var data []ExistingUser
 
+	checkGroup := middleware.CheckGroup(c.GetString("username"), "Admin")
+	if !checkGroup {
+		middleware.ErrorHandler(c, 400, "Unauthorized actions")
+		return
+	}
+
 	rows, err := middleware.SelectAccounts()
 	if err != nil {
 		panic(err)
 	}
+
 	defer rows.Close()
 	for rows.Next() {
-		err = rows.Scan(&existingUser.Username, &existingUser.Email, &existingUser.Status, &existingUser.AdminPrivilege, &existingUser.Usergroup)
+		err = rows.Scan(&existingUser.Username, &existingUser.Email, &existingUser.Usergroup, &existingUser.Status)
 		if err != nil {
 			panic(err)
 		}

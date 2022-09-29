@@ -11,12 +11,12 @@ func CheckWhiteSpace(value string) bool {
 	// s := strings.TrimSpace(value)
 	for _, char := range value {
 		switch {
-		case unicode.IsSpace(char) :
+		case unicode.IsSpace(char):
 			hasWhiteSpace = true
 		}
-	} 
+	}
 	return hasWhiteSpace
-	
+
 }
 
 func CheckLength(value string) bool {
@@ -26,7 +26,7 @@ func CheckLength(value string) bool {
 
 	if len(value) == 0 {
 		hasMinLength = true
-		
+
 	}
 	return hasMinLength
 }

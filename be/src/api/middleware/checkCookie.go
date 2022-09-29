@@ -11,8 +11,8 @@ func CheckCookie(c *gin.Context) {
 	// Request for cookie
 	cookie, err := c.Cookie("jwt-cookie")
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized,
-			gin.H{"code": http.StatusUnauthorized, "message": "Unauthorized User"})
+		c.AbortWithStatusJSON(http.StatusBadRequest,
+			gin.H{"code": http.StatusBadRequest, "message": "Invalid Credentials"})
 		return
 	}
 
@@ -22,13 +22,17 @@ func CheckCookie(c *gin.Context) {
 	})
 
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized,
-			gin.H{"code": http.StatusUnauthorized, "message": "Unauthorized User"})
+		c.AbortWithStatusJSON(http.StatusBadRequest,
+			gin.H{"code": http.StatusBadRequest, "message": "Invalid Credentials"})
 		return
 	}
 
-	// Ignore this for now
-	token.Claims.Valid()
+	// set `claims` variable to be a type of .RegisteredClaims`
+	// so we can access `claims.Issuer`
+	claims := token.Claims.(*jwt.RegisteredClaims)
 
+	// basically issuer is our user id
+	// Refer to middleware.Login
+	c.Set("username", claims.Issuer)
 	c.Next()
 }

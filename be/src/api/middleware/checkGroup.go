@@ -2,46 +2,80 @@ package middleware
 
 import (
 	"database/sql"
+	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
 // Takes in username, user_group to check as params of the function and return a bool
-func CheckGroup(username string, usergroup string) bool {
+func CheckGroup(username string, groupname string) bool {
+	var user_group string
+	var user_groupSlice []string
 
 	var (
 		checkgroup = false
 	)
-	queryCheck := "SELECT username, user_group FROM usergroup WHERE username = ? AND user_group = ?"
 
-	rows := db.QueryRow(queryCheck, username, usergroup)
+	result := SelectCheckGroupFromAccounts(username)
 
-	switch err := rows.Scan(&username, &usergroup); err {
+	err := result.Scan(&username, &user_group)
+	user_groupSlice = strings.Split(user_group, ",")
 
-	// Username/Usergroup does not exist in database
-	case sql.ErrNoRows:
+	if err == sql.ErrNoRows {
 		checkgroup = false
-
-	// Username & Usergroup exists in database
-	case nil:
-		checkgroup = true
+	} else if err == nil {
+		if contains(user_groupSlice, groupname) {
+			checkgroup = true
+		} else {
+			checkgroup = false
+		}
 	}
-
 	return checkgroup
 }
 
-// check if an array contains a given value
-// fetch user_group where username = ?
-// for loop user_group, append into slice []
-// check contains with loop
-// func contains(s []string, str string) bool {
+func contains(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
+	}
 
-// 	var checkGroup = false
+	return false
+}
 
-// 	for _, i := range s {
-// 		if i == str {
-// 			checkGroup = true
+// PREVIOUS CHECKGROUP
+// package middleware
+
+// import (
+// 	"database/sql"
+// 	"strings"
+
+// 	_ "github.com/go-sql-driver/mysql"
+// )
+
+// // Takes in username, user_group to check as params of the function and return a bool
+// func CheckGroup(username string, groupname string) bool {
+// 	var user_group string
+
+// 	var (
+// 		checkgroup = false
+// 	)
+
+// 	result := SelectCheckGroupFromAccounts(username)
+
+// 	switch err := result.Scan(&username, &user_group); err {
+
+// 	// Username/Usergroup does not exist in database
+// 	case sql.ErrNoRows:
+// 		checkgroup = false
+
+// 	// Username & Usergroup exists in database
+// 	case nil:
+// 		if strings.Contains(user_group, groupname) {
+// 			checkgroup = true
+// 		} else {
+// 			checkgroup = false
 // 		}
 // 	}
-// 	return checkGroup
+// 	return checkgroup
 // }

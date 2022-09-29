@@ -1,8 +1,8 @@
 <script>
   import axios from "axios";
-  import { ModalFooter, Table } from "sveltestrap";
-  import { Button, Modal, ModalBody, ModalHeader } from "sveltestrap";
-  import AdminUpdateUserForm from "./AdminUpdateUserForm.svelte";
+  import { Button, Row, Col, Modal, ModalBody, ModalHeader, ModalFooter, Table } from "sveltestrap";
+  import AdminUpdateUserForm from "../Form/UpdateUser.svelte";
+  import AdminCreateUserForm from "../Form/AddUser.svelte";
 
   let usersData = [];
   let open = false;
@@ -20,7 +20,7 @@
 
   async function getUsers() {
     try {
-      const response = await axios.get("http://localhost:4000/get-users");
+      const response = await axios.get("http://localhost:4000/get-users", { withCredentials: true });
       if (response) {
         usersData = response.data;
       }
@@ -46,27 +46,61 @@
     open = !open;
     getUsers();
   };
+
+  let openModal = false;
+  let addButton;
+  const toggleAdd = (e) => {
+    e.preventDefault();
+    getUsers();
+    openModal = !openModal;
+    size = "xl";
+
+    username = "";
+    password = "";
+    email = "";
+    selected = [];
+    status = "Active";
+  };
 </script>
 
 <style>
-  h1 {
-    color: blueviolet;
-    text-align: center;
-    font-family: "Montserrat";
+  thead { 
+      background-color: #F4BB44;
+      /* color: #fffbf0; */
   }
+
+  tbody {
+      background-color: #fffbf0;
+  }
+
+  th, tr {
+      text-align: center;
+  }
+
   .inactive {
     color: red;
     font-weight: bold;
   }
+
   .active {
     color: mediumseagreen;
     font-weight: bold;
   }
 </style>
 
-<div>
-  <h1>Users Database</h1>
-  <Table bordered style="margin:0 auto;width:95%">
+<div class="container-fluid">
+  <Row>
+    <Col>
+        <h3>User Management</h3>
+    </Col>
+    <Col>
+        <Button style="float:right; font-weight: bold; margin-left: 10px; color: black;" color="warning" on:click={toggleAdd}>Add User</Button>
+    </Col>
+  </Row>
+
+  <br/>
+
+  <Table bordered responsive>
     <thead>
       <tr>
         <th>Username</th>
@@ -84,7 +118,9 @@
           <td style="width:35%">{userData.user_group}</td>
           <td class:active={userData.status === "Active"} class:inactive={userData.status === "Inactive"}>{userData.status}</td>
 
-          <td><Button color="primary" on:click={() => editUserData(userData.username, userData.email, userData.user_group, userData.status)}>Update User</Button></td>
+          <td>
+            <Button style="font-weight: bold; color: black;" color="warning" on:click={() => editUserData(userData.username, userData.email, userData.user_group, userData.status)}>Update User</Button>
+          </td>
         </tr>
       {/each}
     </tbody>
@@ -97,8 +133,20 @@
     </ModalBody>
 
     <ModalFooter>
-      <Button color="primary" on:click={(e) => updateButton.handleClick(e)}>Update User</Button>
+      <Button style="color: #fffbf0;" color="warning" on:click={(e) => updateButton.handleClick(e)}>Update User</Button>
       <Button class="back-button" color="danger" on:click={toggle}>Back</Button>
+    </ModalFooter>
+  </Modal>
+
+  <Modal isOpen={openModal} {toggleAdd} {size}>
+    <ModalHeader {toggleAdd}>Add User</ModalHeader>
+    <ModalBody>
+      <AdminCreateUserForm bind:this={addButton} />
+    </ModalBody>
+
+    <ModalFooter>
+      <Button style="color: #fffbf0;" color="warning" on:click={(e) => addButton.CreateUser(e)}>Add User</Button>
+      <Button class="back-button" color="danger" on:click={toggleAdd}>Back</Button>
     </ModalFooter>
   </Modal>
 </div>

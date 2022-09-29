@@ -16,7 +16,8 @@ import (
 
 type Groupnames struct {
 	// json tag to de-serialize json body
-	Name string `json:"user_group"`
+	LoggedInUser string `json:"loggedInUser"`
+	Name         string `json:"user_group"`
 }
 
 func AdminCreateGroup(context *gin.Context) {
@@ -30,7 +31,14 @@ func AdminCreateGroup(context *gin.Context) {
 		return
 	}
 
-	// trim groupname
+	// Check user group
+	checkGroup := middleware.CheckGroup(context.GetString("username"), "Admin")
+	if !checkGroup {
+		middleware.ErrorHandler(context, 400, "Unauthorized actions")
+		return
+	}
+
+	// check if groupname field has whitespace
 	groupname = strings.TrimSpace(newGroup.Name)
 
 	// check if groupname field is empty
@@ -41,10 +49,8 @@ func AdminCreateGroup(context *gin.Context) {
 	}
 
 	// check for existing groupname before creating
-	checkGroupname := "SELECT user_group FROM groupnames WHERE user_group = ?"
-
 	// return first result (single row result)
-	result := db.QueryRow(checkGroupname, groupname)
+	result := middleware.SelectUserGroupFromGroupnamesByUserGroup(groupname)
 
 	// Scan: scanning and reading input (texts given in standard input)
 	switch err := result.Scan(&groupname); err {
@@ -52,7 +58,7 @@ func AdminCreateGroup(context *gin.Context) {
 	// New Group
 	case sql.ErrNoRows:
 		// insert new group
-		_, err := db.Exec("INSERT INTO Groupnames (user_group) VALUES (?)", groupname)
+		_, err := middleware.InsertGroupnames(groupname)
 
 		if err != nil {
 			fmt.Println(err)

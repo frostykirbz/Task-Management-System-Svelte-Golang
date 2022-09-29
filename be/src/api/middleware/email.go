@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"net/mail"
 	"fmt"
+	"net/mail"
 )
 
 // email validation
@@ -20,6 +20,6 @@ func CheckEmail(email string) bool {
 	} else {
 		validEmail = true
 	}
-	
+
 	return validEmail
 }

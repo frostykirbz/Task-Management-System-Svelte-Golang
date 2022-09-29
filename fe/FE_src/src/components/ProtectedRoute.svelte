@@ -1,8 +1,16 @@
 <script>
-    import { Route } from 'svelte-routing';
+  import { navigate, Route } from 'svelte-routing';
+  import Login from './Login.svelte';
 
-    export let path;
-    export let component;
+  export let path;
+  export let component;
+
+  const user = localStorage.getItem('isAdmin');
+  $: if (user === null) navigate('/');
 </script>
 
-<Route path={path} component={component} />
+{#if user}
+  <Route {path} {component} />
+{:else}
+  <Route {path} component={Login} />
+{/if}

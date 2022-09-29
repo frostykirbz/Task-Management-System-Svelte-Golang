@@ -11,7 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // Go struct in the form of JSON
@@ -38,7 +37,9 @@ func AdminUpdateUser(c *gin.Context) {
 		return
 	}
 
-	checkGroup := middleware.CheckGroup(updateUser.LoggedInUser, "Admin")
+	// Check user group
+	checkGroup := middleware.CheckGroup(c.GetString("username"), "Admin")
+	fmt.Println(c.GetString("username"))
 	if !checkGroup {
 		middleware.ErrorHandler(c, 400, "Unauthorized actions")
 		return
@@ -49,21 +50,7 @@ func AdminUpdateUser(c *gin.Context) {
 
 func adminUpdateUser(username string, password string, email string, user_group string, status string, c *gin.Context) {
 	if username != "" {
-		// whiteSpace := middleware.CheckWhiteSpace(username)
-		// if whiteSpace {
-		// 	middleware.ErrorHandler(c, 400, "Username should not contain whitespace")
-		// 	return
-		// }
-
-		result := middleware.SelectAccountsByUsername(username, c)
-		switch err := result.Scan(&username); {
-		case err != sql.ErrNoRows:
-			adminUpdateUserPassword(username, password, email, user_group, status, c)
-		case err == sql.ErrNoRows:
-			middleware.ErrorHandler(c, 400, "Username does not exist. Please try again.")
-		default:
-			checkError(err)
-		}
+		adminUpdateUserPassword(username, password, email, user_group, status, c)
 	} else {
 		middleware.ErrorHandler(c, 400, "Please enter a username")
 	}
@@ -86,8 +73,19 @@ func adminUpdateUserPassword(username string, password string, email string, use
 }
 
 func adminUpdateUserEmail(username string, hashedPassword string, email string, user_group string, status string, c *gin.Context) {
-
 	if email != "" {
+		validEmail := middleware.CheckEmail(email)
+		if !validEmail {
+			middleware.ErrorHandler(c, 400, "Invalid Email Format")
+			return
+		}
+		whiteSpace := middleware.CheckWhiteSpace(email)
+		if whiteSpace {
+			fmt.Println("Reached here!")
+			middleware.ErrorHandler(c, 400, "Email should not contain whitespace")
+			return
+		}
+		fmt.Println("Here")
 		adminUpdateUserGroup(username, hashedPassword, email, user_group, status, c)
 	} else {
 		email = getCurrentUserData(username, c)["email"]
@@ -157,14 +155,6 @@ func updateUserGroupTable(username string, user_group string) {
 			}
 		}
 	}
-}
-
-func hashAndSaltPassword(pwd []byte) string {
-	pwdCost := 10
-	hash, err := bcrypt.GenerateFromPassword(pwd, pwdCost)
-	checkError(err)
-
-	return string(hash)
 }
 
 func checkError(err error) {
