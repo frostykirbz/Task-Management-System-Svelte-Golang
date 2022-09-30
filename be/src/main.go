@@ -45,6 +45,8 @@ func main() {
 	router.GET("/get-users-in-group", route.GetUsersInGroup)
 	router.POST("/update-user", route.UpdateUser)
 
+	router.POST("/update-task", route.UpdateTask)
+
 	port := middleware.LoadENV("SERVER_PORT")
 	server := fmt.Sprintf(":%v", port)
 
