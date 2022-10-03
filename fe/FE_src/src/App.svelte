@@ -7,7 +7,6 @@
   import Home from "./components/Pages/Home.svelte";
   import MgtUser from "./components/Pages/MgtUser.svelte";
   import MgtGroup from "./components/Pages/MgtGroup.svelte";
-  import AddUserToGroup from "./components/Pages/AddUserToGroup.svelte";
 </script>
 
 <SvelteToast />
@@ -17,7 +16,6 @@
     <Route path="/" component={Login} />
 
 		<!-- Need to change on protected route -->
-		<ProtectedRoute path="/add-user-to-group" component={AddUserToGroup} />
 		<ProtectedRoute path="/home" component={Home} />
 		<ProtectedRoute path="/user-management" component={MgtUser} />
 		<ProtectedRoute path="/group-management" component={MgtGroup} />
