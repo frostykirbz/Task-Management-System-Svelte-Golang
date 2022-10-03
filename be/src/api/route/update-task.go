@@ -18,7 +18,7 @@ import (
 // - check task notes if there is task notes (insert in tasknotes table and update tasknotes in task table)/there is no task notes (dont need insert in tasknotes table and update tasknotes in task table)
 func UpdateTask(c *gin.Context) {
 	var task models.Task
-	var AppAcronym string = c.Query("AppAcronym")
+	//var AppAcronym string = c.Query("AppAcronym")
 
 	// call BindJSON to bind the received JSON to task
 	if err := c.BindJSON(&task); err != nil {
@@ -28,7 +28,7 @@ func UpdateTask(c *gin.Context) {
 	}
 
 	// check if taskname exists
-	result := middleware.SelectTaskName(task.TaskName, AppAcronym)
+	result := middleware.SelectTaskName(task.TaskName, task.TaskAppAcronym)
 	fmt.Println(task.TaskAppAcronym)
 	fmt.Println(task.TaskName)
 
@@ -42,14 +42,15 @@ func UpdateTask(c *gin.Context) {
 	// task name exists
 	case nil:
 		// plan color check
-		checkTaskPlan(task, c)
+		task.TaskColor = checkTaskPlanColor(task, c)
 
 		// task notes check
-		checkTaskNotes(task, c)
+		task.TaskNotes = checkTaskNotes(task, c)
 
 		// update task with/without plan
+		updateTaskTable(task)
 
-		c.JSON(200, gin.H{"code": 200, "message": "Exists"})
+		c.JSON(200, gin.H{"code": 200, "message": "Task updated successfully"})
 		return
 	}
 }
@@ -65,7 +66,9 @@ func UpdateTask(c *gin.Context) {
 // }
 
 // check if there is plan color
-func checkTaskPlan(task models.Task, c *gin.Context) {
+// 1. no plan color (return empty string)
+// 2. has plan color (return plan color)
+func checkTaskPlanColor(task models.Task, c *gin.Context) string {
 	var PlanColor sql.NullString
 
 	result := middleware.SelectPlanColor(task.TaskPlan)
@@ -73,20 +76,21 @@ func checkTaskPlan(task models.Task, c *gin.Context) {
 	switch err := result.Scan(&PlanColor); err {
 	case sql.ErrNoRows:
 		task.TaskColor = ""
-		return
 
 	case nil:
 		task.TaskColor = PlanColor.String
-		return
 	}
+
+	return task.TaskColor
 }
 
 // check if there is task notes
-func checkTaskNotes(task models.Task, c *gin.Context) {
+// 1. no new task notes (get existing task notes from task table and return task notes)
+// 2. has new task notes (insert task notes into task_notes table and return formatted task notes)
+func checkTaskNotes(task models.Task, c *gin.Context) string {
 	var TaskNotes, TaskNotesDate, TaskNotesTime, TaskOwner, TaskState sql.NullString
 	var taskNotesAuditString string
 
-	// new task notes
 	if !middleware.CheckLength(task.TaskNotes) {
 
 		var selectTaskQuery = "SELECT task_owner, task_state FROM task WHERE task_name = ? AND task_app_acronym = ?"
@@ -96,14 +100,13 @@ func checkTaskNotes(task models.Task, c *gin.Context) {
 		switch err := result.Scan(&TaskOwner, &TaskState); err {
 
 		case sql.ErrNoRows:
-			middleware.ErrorHandler(c, 400, "Task owner/state does not exist")
-			return
+			middleware.ErrorHandler(c, 400, "Task does not exist")
 
 		case nil:
 			task.TaskOwner = TaskOwner.String
 			task.TaskState = TaskState.String
 
-			// insert row into task notes table
+			// insert task notes, task owner and task state into task notes table
 			_, err = middleware.InsertCreateTaskNotes(task.TaskName, task.TaskNotes, task.TaskOwner, task.TaskState)
 
 			if err != nil {
@@ -127,13 +130,25 @@ func checkTaskNotes(task models.Task, c *gin.Context) {
 			}
 
 			task.TaskNotes = taskNotesAuditString
-			fmt.Println(task.TaskNotes)
-			updateTaskTable(task)
 		}
+
 	} else {
-		// update task
-		updateTaskTable(task)
+		// get existing task notes
+		var selectTaskNotesQuery = "SELECT task_notes FROM task WHERE task_name = ? AND task_app_acronym = ?"
+
+		result := db.QueryRow(selectTaskNotesQuery, task.TaskName, task.TaskAppAcronym)
+
+		switch err := result.Scan(&TaskNotes); err {
+
+		case sql.ErrNoRows:
+			middleware.ErrorHandler(c, 400, "Task does not exist")
+
+		case nil:
+			task.TaskNotes = TaskNotes.String
+		}
 	}
+
+	return task.TaskNotes
 }
 
 // check if there is a plan
